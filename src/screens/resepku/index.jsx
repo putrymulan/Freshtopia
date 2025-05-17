@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
-
+import * as Animatable from 'react-native-animatable';
+import { useFocusEffect } from '@react-navigation/native';
 const recipes = [
   {
     id: '1',
@@ -33,22 +34,41 @@ const recipes = [
 export default function MyRecipesScreen() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const animationRefs = useRef([]);
 
   const openModal = (item) => {
     setSelectedItem(item);
     setModalVisible(true);
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => openModal(item)}>
-      <Image source={{ uri: item.image }} style={styles.image} />
-      <View style={styles.cardContent}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description} numberOfLines={2}>
-          {item.description}
-        </Text>
-      </View>
-    </TouchableOpacity>
+  const renderItem = ({ item, index }) => (
+    <Animatable.View
+      ref={(ref) => (animationRefs.current[index] = ref)}
+      animation="fadeInUp"
+      delay={index * 150}
+      duration={500}
+      useNativeDriver
+    >
+      <TouchableOpacity style={styles.card} onPress={() => openModal(item)}>
+        <Image source={{ uri: item.image }} style={styles.image} />
+        <View style={styles.cardContent}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.description} numberOfLines={2}>
+            {item.description}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </Animatable.View>
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      animationRefs.current.forEach((ref, index) => {
+        if (ref && typeof ref.fadeInUp === 'function') {
+          ref.fadeInUp(500 + index * 150);
+        }
+      });
+    }, [])
   );
 
   return (
