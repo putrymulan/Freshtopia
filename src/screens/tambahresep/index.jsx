@@ -1,20 +1,37 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import axios from 'axios';
 
 export default function AddRecipeForm() {
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title || !desc || !imageUrl) {
       Alert.alert('Gagal', 'Semua field wajib diisi!');
       return;
     }
-    Alert.alert('Sukses', `Resep "${title}" berhasil ditambahkan!`);
-    setTitle('');
-    setDesc('');
-    setImageUrl('');
+
+    try {
+      const response = await axios.post('https://68353315cd78db2058c08b0d.mockapi.io/api/resep', {
+        title,
+        description: desc,
+        image: imageUrl,
+      });
+
+      if (response.status === 201 || response.status === 200) {
+        Alert.alert('Sukses', `Resep "${title}" berhasil ditambahkan ke server!`);
+        setTitle('');
+        setDesc('');
+        setImageUrl('');
+      } else {
+        Alert.alert('Gagal', 'Terjadi kesalahan saat mengirim data!');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Gagal mengirim data ke server.');
+    }
   };
 
   return (
