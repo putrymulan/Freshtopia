@@ -1,12 +1,58 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  Platform,
+  PermissionsAndroid,
+} from 'react-native';
 import firestore from '@react-native-firebase/firestore';
-// import { firebase } from './firebaseConfig'; // sesuaikan path jika berbeda
+import notifee, { AndroidImportance } from '@notifee/react-native';
 
 export default function AddRecipeForm() {
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+
+  // Minta izin notifikasi (Android 13+)
+  const requestNotificationPermission = async () => {
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return true;
+  };
+
+  // Tampilkan notifikasi sukses
+  const showSuccessNotification = async (recipeName) => {
+    const hasPermission = await requestNotificationPermission();
+    if (!hasPermission) return;
+
+    // Buat channel (khusus Android)
+    await notifee.createChannel({
+      id: 'resep-channel',
+      name: 'Notifikasi Resep',
+      importance: AndroidImportance.HIGH,
+    });
+
+    // Tampilkan notifikasi
+    await notifee.displayNotification({
+      title: '✅ Resep Tersimpan',
+      body: `"${recipeName}" berhasil ditambahkan!`,
+      android: {
+        channelId: 'resep-channel',
+        pressAction: {
+          id: 'default',
+        },
+      },
+    });
+  };
 
   const handleSubmit = async () => {
     if (!title || !desc || !imageUrl) {
@@ -21,6 +67,8 @@ export default function AddRecipeForm() {
         image: imageUrl,
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
+
+      await showSuccessNotification(title);
 
       Alert.alert('Sukses', `Resep "${title}" berhasil ditambahkan ke Firebase!`);
       setTitle('');
