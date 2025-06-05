@@ -31,20 +31,16 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import axios from 'axios';
+import firestore from '@react-native-firebase/firestore';
 import * as Animatable from 'react-native-animatable';
 import { useFocusEffect } from '@react-navigation/native';
-
-const API_URL = 'https://68353315cd78db2058c08b0d.mockapi.io/api/resep';
 
 export default function MyRecipesScreen() {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
 
-  // Input untuk edit
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editImage, setEditImage] = useState('');
@@ -52,9 +48,11 @@ export default function MyRecipesScreen() {
   const animationRefs = useRef([]);
 
   const fetchRecipes = async () => {
+    setLoading(true);
     try {
-      const res = await axios.get(API_URL);
-      setRecipes(res.data);
+      const snapshot = await firestore().collection('resep').orderBy('createdAt', 'desc').get();
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setRecipes(data);
     } catch (err) {
       console.error('Error fetching:', err);
     } finally {
@@ -76,7 +74,7 @@ export default function MyRecipesScreen() {
     setModalVisible(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     Alert.alert('Hapus Resep', 'Apakah kamu yakin ingin menghapus resep ini?', [
       { text: 'Batal', style: 'cancel' },
       {
@@ -84,7 +82,7 @@ export default function MyRecipesScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await axios.delete(`${API_URL}/${id}`);
+            await firestore().collection('resep').doc(id).delete();
             fetchRecipes();
             setModalVisible(false);
           } catch (error) {
@@ -102,10 +100,11 @@ export default function MyRecipesScreen() {
     }
 
     try {
-      await axios.put(`${API_URL}/${selectedItem.id}`, {
+      await firestore().collection('resep').doc(selectedItem.id).update({
         title: editTitle,
         description: editDesc,
         image: editImage,
+        updatedAt: firestore.FieldValue.serverTimestamp(),
       });
       fetchRecipes();
       setModalVisible(false);

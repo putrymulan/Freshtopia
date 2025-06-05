@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
-import axios from 'axios';
+import firestore from '@react-native-firebase/firestore';
+// import { firebase } from './firebaseConfig'; // sesuaikan path jika berbeda
 
 export default function AddRecipeForm() {
   const [title, setTitle] = useState('');
@@ -14,23 +15,20 @@ export default function AddRecipeForm() {
     }
 
     try {
-      const response = await axios.post('https://68353315cd78db2058c08b0d.mockapi.io/api/resep', {
+      await firestore().collection('resep').add({
         title,
         description: desc,
         image: imageUrl,
+        createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
-      if (response.status === 201 || response.status === 200) {
-        Alert.alert('Sukses', `Resep "${title}" berhasil ditambahkan ke server!`);
-        setTitle('');
-        setDesc('');
-        setImageUrl('');
-      } else {
-        Alert.alert('Gagal', 'Terjadi kesalahan saat mengirim data!');
-      }
+      Alert.alert('Sukses', `Resep "${title}" berhasil ditambahkan ke Firebase!`);
+      setTitle('');
+      setDesc('');
+      setImageUrl('');
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Gagal mengirim data ke server.');
+      Alert.alert('Error', 'Gagal mengirim data ke Firebase.');
     }
   };
 
